@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; }
+  code, pre, .font-mono { font-family: 'DM Mono', monospace; }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.zinc.300') transparent;
+  }
+  .dark .scrollbar-thin {
+    scrollbar-color: theme('colors.zinc.700') transparent;
+  }
+}

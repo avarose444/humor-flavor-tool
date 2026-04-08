@@ -73,7 +73,7 @@ export async function generateCaptions(params: {
     const raw: GeneratedCaption[] = (
       Array.isArray(data) ? data : (data?.captions ?? data?.data ?? [])
     ).map((item: unknown) =>
-      typeof item === 'string' ? { caption: item } : item
+      typeof item === 'string' ? { caption: item } : { caption: item.content ?? item.caption ?? JSON.stringify(item) }
     )
 
     return { captions: raw }

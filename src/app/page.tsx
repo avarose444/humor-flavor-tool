@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth-context'
 import { Modal } from '@/components/Modal'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { HumorFlavor } from '@/lib/database.types'
-import { Plus, Sparkles, Loader2, Edit2, Trash2, ChevronRight, Layers, Search } from 'lucide-react'
+import { Plus, Sparkles, Loader2, Edit2, Trash2, ChevronRight, Layers, Search, Copy } from 'lucide-react'
 
 type FlavorWithCount = HumorFlavor & { step_count: number }
 
@@ -17,9 +17,10 @@ export default function HomePage() {
   const supabase = createClient()
   const { isAdmin, loading: authLoading, user } = useAuth()
 
-  const [flavors,  setFlavors]  = useState<FlavorWithCount[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [query,    setQuery]    = useState('')
+  const [flavors,     setFlavors]     = useState<FlavorWithCount[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [query,       setQuery]       = useState('')
+  const [duplicating, setDuplicating] = useState<number | null>(null)
 
   const [modalOpen,   setModalOpen]   = useState(false)
   const [editFlavor,  setEditFlavor]  = useState<HumorFlavor | null>(null)
@@ -83,6 +84,44 @@ export default function HomePage() {
     setDeleting(true)
     await supabase.from('humor_flavors').delete().eq('id', deleteTarget.id)
     setDeleting(false); setDeleteTarget(null); loadFlavors()
+  }
+
+  const handleDuplicate = async (f: HumorFlavor) => {
+    if (!user) return
+    setDuplicating(f.id)
+    const newSlug = `${f.slug}-copy-${Date.now().toString().slice(-4)}`
+    const { data: newFlavor, error } = await supabase
+      .from('humor_flavors')
+      .insert({ slug: newSlug, description: f.description, created_by_user_id: user.id, modified_by_user_id: user.id })
+      .select()
+      .single()
+    if (error || !newFlavor) { setDuplicating(null); return }
+    const { data: existingSteps } = await supabase
+      .from('humor_flavor_steps')
+      .select('*')
+      .eq('humor_flavor_id', f.id)
+      .order('order_by')
+    if (existingSteps && existingSteps.length > 0) {
+      for (const s of existingSteps) {
+        const { error: stepError } = await supabase.from('humor_flavor_steps').insert({
+          humor_flavor_id: newFlavor.id,
+          order_by: s.order_by,
+          llm_system_prompt: s.llm_system_prompt,
+          llm_user_prompt: s.llm_user_prompt,
+          description: s.description,
+          llm_temperature: s.llm_temperature,
+          llm_model_id: s.llm_model_id,
+          llm_input_type_id: s.llm_input_type_id,
+          llm_output_type_id: s.llm_output_type_id,
+          humor_flavor_step_type_id: s.humor_flavor_step_type_id,
+          created_by_user_id: user.id,
+          modified_by_user_id: user.id,
+        } as any)
+        if (stepError) console.error('Step insert error:', stepError)
+      }
+    }
+    setDuplicating(null)
+    loadFlavors()
   }
 
   const filtered = flavors.filter(f =>
@@ -163,10 +202,13 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openEdit(f)} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
+                  <button onClick={() => openEdit(f)} title="Edit" className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
                     <Edit2 size={14} />
                   </button>
-                  <button onClick={() => setDeleteTarget(f)} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                  <button onClick={() => handleDuplicate(f)} disabled={duplicating === f.id} title="Duplicate" className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors disabled:opacity-50">
+                    {duplicating === f.id ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
+                  </button>
+                  <button onClick={() => setDeleteTarget(f)} title="Delete" className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                     <Trash2 size={14} />
                   </button>
                 </div>

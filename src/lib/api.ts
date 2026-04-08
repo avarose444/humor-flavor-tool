@@ -2,67 +2,81 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://api.almostcrac
 
 export interface GeneratedCaption {
   caption: string
+  id?: string
   rank?: number
 }
 
 export interface GenerateCaptionsResult {
   captions: GeneratedCaption[]
-  raw_steps?: string[]          // intermediate step outputs, if API returns them
   error?: string
 }
 
-/**
- * Calls POST /captions/generate on the almostcrackd REST API.
- *
- * Auth: Supabase JWT is sent as Bearer token.
- * If the API uses a different scheme (e.g. x-api-key), swap here.
- *
- * Body shape sent:
- * {
- *   image_url: string,
- *   flavor_id: string,
- *   steps: string[]          // prompts in order
- * }
- */
 export async function generateCaptions(params: {
   imageUrl: string
   flavorId: string
   steps: Array<{ step_order: number; prompt: string }>
   accessToken: string
 }): Promise<GenerateCaptionsResult> {
-  const { imageUrl, flavorId, steps, accessToken } = params
-  const orderedPrompts = [...steps]
-    .sort((a, b) => a.step_order - b.step_order)
-    .map(s => s.prompt)
+  const { imageUrl, flavorId, accessToken } = params
 
   try {
-    const res = await fetch(`${API_BASE}/captions/generate`, {
+    // Step 1: Fetch image
+    const imgRes = await fetch(imageUrl)
+    if (!imgRes.ok) return { captions: [], error: `Could not fetch image: ${imgRes.status}` }
+    const contentType = imgRes.headers.get('content-type') ?? 'image/jpeg'
+    const imageBlob = await imgRes.blob()
+
+    // Step 2: Get presigned URL
+    const presignRes = await fetch(`${API_BASE}/pipeline/generate-presigned-url`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        image_url: imageUrl,
-        flavor_id: flavorId,
-        steps: orderedPrompts,
-      }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+      body: JSON.stringify({ contentType }),
     })
-
-    const json = await res.json().catch(() => ({}))
-
-    if (!res.ok) {
-      return { captions: [], error: json?.message ?? json?.error ?? `API ${res.status}` }
+    if (!presignRes.ok) {
+      const err = await presignRes.json().catch(() => ({}))
+      return { captions: [], error: err.message ?? `Presign error ${presignRes.status}` }
     }
+    const { presignedUrl, cdnUrl } = await presignRes.json()
 
-    // Normalise — the API may return { captions: [...] } or { data: [...] } etc.
+    // Step 3: Upload image to presigned URL
+    const uploadRes = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: imageBlob,
+    })
+    if (!uploadRes.ok) return { captions: [], error: `Upload error ${uploadRes.status}` }
+
+    // Step 4: Register image
+    const registerRes = await fetch(`${API_BASE}/pipeline/upload-image-from-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+      body: JSON.stringify({ imageUrl: cdnUrl, isCommonUse: false }),
+    })
+    if (!registerRes.ok) {
+      const err = await registerRes.json().catch(() => ({}))
+      return { captions: [], error: err.message ?? `Register error ${registerRes.status}` }
+    }
+    const { imageId } = await registerRes.json()
+
+    // Step 5: Generate captions with flavor
+    const captionRes = await fetch(`${API_BASE}/pipeline/generate-captions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+      body: JSON.stringify({ imageId, humorFlavorId: Number(flavorId) }),
+    })
+    if (!captionRes.ok) {
+      const err = await captionRes.json().catch(() => ({}))
+      return { captions: [], error: err.message ?? `Caption error ${captionRes.status}` }
+    }
+    const data = await captionRes.json()
+
     const raw: GeneratedCaption[] = (
-      json?.captions ?? json?.data ?? (Array.isArray(json) ? json : [])
+      Array.isArray(data) ? data : (data?.captions ?? data?.data ?? [])
     ).map((item: unknown) =>
       typeof item === 'string' ? { caption: item } : item
     )
 
-    return { captions: raw, raw_steps: json?.steps }
+    return { captions: raw }
   } catch (err) {
     return { captions: [], error: String(err) }
   }

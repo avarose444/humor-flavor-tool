@@ -2,18 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  * { box-sizing: border-box; }
-  body { font-family: 'DM Sans', sans-serif; }
-  code, pre, .font-mono { font-family: 'DM Mono', monospace; }
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Lato', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.3s, color 0.3s;
 }
 
-@layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: theme('colors.zinc.300') transparent;
-  }
-  .dark .scrollbar-thin {
-    scrollbar-color: theme('colors.zinc.700') transparent;
-  }
+/* Light mode */
+body {
+  background-color: #fdf6f0;
+  color: #1a1015;
+}
+
+/* Dark mode */
+.dark body {
+  background-color: #1a1015;
+  color: #f7e7ce;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+code, pre, .font-mono {
+  font-family: 'DM Mono', monospace;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.animate-slide-up { animation: slideUp 0.3s ease forwards; }
+.animate-fade-in  { animation: fadeIn 0.2s ease forwards; }
+.animate-float    { animation: float 4s ease-in-out infinite; }
+.animate-shimmer  { animation: shimmer 3s linear infinite; }
+
+/* Gold shimmer text */
+.shimmer-text {
+  background: linear-gradient(90deg, #c9a84c, #e8d48a, #c9a84c, #f7e7ce, #c9a84c);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #f2a7b8; border-radius: 10px; }
+::selection { background: #f2a7b8; color: #1a1015; }
+
+/* Confetti canvas */
+#confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
 }

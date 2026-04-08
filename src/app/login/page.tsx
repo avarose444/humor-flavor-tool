@@ -3,13 +3,12 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
-import { Sparkles, Loader2 } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 
 export default function LoginPage() {
   const router   = useRouter()
   const supabase = createClient()
   const { isAdmin, loading: authLoading } = useAuth()
-
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
@@ -18,44 +17,50 @@ export default function LoginPage() {
   }, [authLoading, isAdmin, router])
 
   const handleGoogle = async () => {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
     if (error) { setError(error.message); setLoading(false) }
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/30">
+    <div className="min-h-[80vh] flex items-center justify-center relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="absolute top-10 left-1/4 w-72 h-72 bg-[#f2a7b8] dark:bg-[#c2185b] rounded-full opacity-10 blur-3xl animate-float pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-[#c9a84c] rounded-full opacity-10 blur-3xl animate-float pointer-events-none" style={{animationDelay: '2s'}} />
+
+      <div className="relative w-full max-w-sm z-10">
+        <div className="flex flex-col items-center gap-3 mb-10">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#f2a7b8] to-[#c2185b] flex items-center justify-center shadow-xl shadow-[#f2a7b8]/30 animate-float">
             <Sparkles size={28} className="text-white" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-brand-500 to-brand-700 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-display italic text-[#1a1015] dark:text-[#f7e7ce] tracking-wide">
               FlavorForge
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Admin access required</p>
+            <div className="mt-1 h-px bg-gradient-to-r from-transparent via-[#f2a7b8] to-transparent" />
+            <p className="text-xs text-[#c8a97e] mt-2 tracking-widest uppercase font-body">
+              Admin access required
+            </p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-xl shadow-zinc-900/5 flex flex-col gap-4">
+        <div className="bg-white/80 dark:bg-[#2d1f28]/80 backdrop-blur-sm border border-[#f2a7b8]/30 dark:border-[#3d2f38] rounded-2xl p-8 shadow-xl shadow-[#f2a7b8]/10 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#f2a7b8] via-[#c9a84c] to-[#f2a7b8]" />
+
           {error && (
-            <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">{error}</p>
+            <p className="text-xs text-[#c2185b] bg-[#fce4ec] dark:bg-[#3d2f38] px-3 py-2 rounded-xl mb-4 font-body">{error}</p>
           )}
 
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60 text-zinc-700 dark:text-zinc-200 font-semibold text-sm transition-colors"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl border border-[#f2a7b8]/40 dark:border-[#3d2f38] hover:border-[#f2a7b8] dark:hover:border-[#f2a7b8]/50 bg-[#fdf6f0] dark:bg-[#1a1015] hover:bg-[#fce4ec] dark:hover:bg-[#2d1f28] disabled:opacity-60 text-[#1a1015] dark:text-[#f7e7ce] text-sm transition-all"
           >
             {loading ? (
-              <Loader2 size={18} className="animate-spin" />
+              <Loader2 size={18} className="animate-spin text-[#f2a7b8]" />
             ) : (
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -64,10 +69,10 @@ export default function LoginPage() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
             )}
-            {loading ? 'Redirecting…' : 'Sign in with Google'}
+            {loading ? 'Signing in…' : 'Continue with Google'}
           </button>
 
-          <p className="text-xs text-center text-zinc-400 dark:text-zinc-500">
+          <p className="text-xs text-center text-[#c8a97e] mt-4 font-body">
             Only superadmins and matrix admins can access this tool.
           </p>
         </div>

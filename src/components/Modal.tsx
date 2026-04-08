@@ -24,12 +24,15 @@ export function Modal({ open, onClose, title, children, size = 'md' }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-      <div className={`relative w-full ${sizes[size]} bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-700 animate-slide-up`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{title}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 transition-colors">
-            <X size={18} />
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+      <div className={`relative w-full ${sizes[size]} bg-white dark:bg-[#2d1f28] rounded-2xl shadow-2xl border border-[#f2a7b8]/30 dark:border-[#3d2f38] animate-slide-up overflow-hidden`}>
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#f2a7b8] via-[#c9a84c] to-[#f2a7b8]" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#f2a7b8]/20 dark:border-[#3d2f38]">
+          <h2 className="text-lg font-display italic text-[#1a1015] dark:text-[#f7e7ce] tracking-wide">
+            {title}
+          </h2>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-[#fce4ec] dark:hover:bg-[#3d2f38] text-[#c8a97e] dark:text-[#6a4a5a] hover:text-[#c2185b] dark:hover:text-[#f2a7b8] transition-colors">
+            <X size={16} />
           </button>
         </div>
         <div className="p-6">{children}</div>
